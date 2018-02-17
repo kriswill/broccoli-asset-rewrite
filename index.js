@@ -79,15 +79,17 @@ AssetRewrite.prototype.canProcessFile = function(relativePath) {
     return false;
   }
 
-  return Filter.prototype.canProcessFile.apply(this, arguments);
+  var canProcessFile =  Filter.prototype.canProcessFile.apply(this, arguments);
+  if (canProcessFile) {
+    debug('FILE: %s', relativePath);
+  }
+  return canProcessFile;
 }
 
 AssetRewrite.prototype.rewriteAssetPath = function (string, assetPath, replacementPath) {
 
   // Early exit: does the file contain the asset path?
   if (string.indexOf(assetPath) === -1) return string;
-
-  debug('rewriteAssetPath, %O', {assetPath, replacementPath});
 
   var newString = string;
 
@@ -129,7 +131,14 @@ AssetRewrite.prototype.rewriteAssetPath = function (string, assetPath, replaceme
       var removeLeadingRelativeOrSlashRegex = new RegExp('^(\\.*/)*(.*)$');
       replaceString = this.prepend + removeLeadingRelativeOrSlashRegex.exec(replaceString)[2];
     }
-
+    // HACK if we are fingerprint prepending, and using ember-engines, There's a bug
+    // where some assets are adding /assets/ after the prepend.  This Hack will remove the
+    // superfluous /assets/ from the rewrite path.
+    // TODO investiage a better way to fix this.
+    if (replaceString.includes('/assets/engines-dist/')) {
+      replaceString = replaceString.replace('/assets/engines-dist/', '/engines-dist/');
+    }
+    debug('replaceString: %s', replaceString);
     newString = newString.replace(new RegExp(escapeRegExp(match[1]), 'g'), replaceString);
   }
 
@@ -153,13 +162,11 @@ AssetRewrite.prototype.processString = function (string, relativePath) {
       /*
        * Rewrite absolute URLs
        */
-
       newString = this.rewriteAssetPath(newString, key, this.assetMap[key]);
 
       /*
        * Rewrite relative URLs. If there is a prepend, use the full absolute path.
        */
-
       var pathDiff = relative(relativePath, key).replace(/^\.\//, "");
       var replacementDiff = relative(relativePath, this.assetMap[key]).replace(/^\.\//, "");
 
@@ -188,7 +195,7 @@ AssetRewrite.prototype.generateAssetMapKeys = function () {
 
     return 0;
   });
-
+  debug('assetMapKeys: %O', keys);
   this.assetMapKeys = keys;
 };
 
