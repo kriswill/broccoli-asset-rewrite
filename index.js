@@ -1,3 +1,4 @@
+var debug = require('debug')('broccoli-asset-rewrite');
 var Filter = require('broccoli-filter');
 var path = require('path');
 var Cache = require('broccoli-filter/lib/cache');
@@ -85,6 +86,8 @@ AssetRewrite.prototype.rewriteAssetPath = function (string, assetPath, replaceme
 
   // Early exit: does the file contain the asset path?
   if (string.indexOf(assetPath) === -1) return string;
+
+  debug('rewriteAssetPath, %O', {assetPath, replacementPath});
 
   var newString = string;
 
